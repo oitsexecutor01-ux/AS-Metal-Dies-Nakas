@@ -1,0 +1,55 @@
+.fuse-button {
+  --fb-ink: #fff;
+  --fb-bg: #b9622d;
+  --fb-fuse: #f4c08e;
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  vertical-align: middle;
+  overflow: hidden;
+  border-radius: 9px;
+  color: var(--fb-ink);
+  background: var(--fb-bg);
+  box-shadow: 0 4px 9px #b9622d22;
+  transition: background .16s, transform .16s;
+}
+
+.fuse-button:hover { background: #a65324; transform: translateY(-1px); }
+.fuse-button:has(.fuse-button__undo) { background: #253a51; }
+.fuse-button__face {
+  display: inline-flex;
+  width: 100%;
+  min-height: 39px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 13px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.fuse-button__face:disabled { cursor: default; opacity: .75; }
+.fuse-button__undo { cursor: pointer; }
+.fuse-button__fuse {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: var(--fb-fuse);
+  transform: scaleX(1);
+  transform-origin: right;
+  pointer-events: none;
+}
+.fuse-button[data-phase='armed'] .fuse-button__fuse { animation: cart-fuse 4s linear forwards; }
+.fuse-button__status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.product-card-actions > .fuse-button { width: 100%; }
+.detail-actions > .fuse-button { min-height: 39px; }
+@keyframes cart-fuse { to { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .fuse-button, .fuse-button__fuse { transition: none; animation-duration: .01ms !important; }
+}
