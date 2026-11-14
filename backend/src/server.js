@@ -7,7 +7,7 @@ import { promisify } from 'node:util';
 const app = express();
 const scrypt = promisify(scryptCallback);
 const port = Number(process.env.PORT || 3000);
-const host = process.env.HOST || '127.0.0.1';
+const host = process.env.HOST || '0.0.0.0';
 const mongoUri = process.env.MONGODB_URI;
 
 const stateSchema = new mongoose.Schema({
