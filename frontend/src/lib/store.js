@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { apiUrl } from './api.js';
 
 const KEY = 'as-metal-commerce-react-v1';
 const iso = () => new Date().toISOString().slice(0, 10);
@@ -122,12 +123,12 @@ function applySnapshot(next, broadcast = false) {
   if (broadcast) channel?.postMessage('refresh');
 }
 async function readRemote() {
-  const response = await fetch('/api/state', { cache: 'no-store' });
+  const response = await fetch(apiUrl('/api/state'), { cache: 'no-store' });
   if (!response.ok) throw new Error(`Loading data failed (${response.status})`);
   return response.json();
 }
 async function persist(next) {
-  const response = await fetch('/api/state', {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(next)});
+  const response = await fetch(apiUrl('/api/state'), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(next)});
   if (!response.ok) throw new Error(`Saving data failed (${response.status})`);
 }
 // Other browsers/devices do not receive localStorage or BroadcastChannel events.

@@ -1,5 +1,18 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 
-export default defineConfig({
-  server: { proxy: { '/api': 'http://127.0.0.1:3000' } },
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  const target = env.VITE_API_URL || 'https://as-metal-dies-nakas.onrender.com';
+
+  return {
+    server: {
+      proxy: {
+        '/api': {
+          target,
+          changeOrigin: true,
+          secure: false,
+        },
+      },
+    },
+  };
 });

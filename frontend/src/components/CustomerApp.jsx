@@ -10,6 +10,7 @@ import { cartDeliveryCharges } from '../lib/deliveryCharges.js';
 import { toast } from 'react-toastify';
 import FuseButton from './FuseButton.jsx';
 import { ProductReviews, ReviewForm } from './ProductReviews.jsx';
+import { apiUrl } from '../lib/api.js';
 
 const CART_KEY='as-metal-commerce-cart-v1';
 const recentKey='as-commerce-recent-products';
@@ -194,7 +195,7 @@ export default function CustomerApp({data}){
   useEffect(()=>{if(!shop.cod && payment==='Cash on delivery')setPayment('Razorpay');},[shop.cod,payment]);
   useEffect(()=>{
     let mounted=true;
-    fetch('/api/customer/me',{credentials:'same-origin',cache:'no-store'})
+    fetch(apiUrl('/api/customer/me'),{credentials:'include',cache:'no-store'})
       .then(response=>response.ok?response.json():{customer:null})
       .then(result=>{if(mounted&&result.customer){setCustomerAuth(result.customer);setContact(old=>({...old,name:old.name||result.customer.name,phone:old.phone||result.customer.phone}));}})
       .catch(()=>{})
@@ -212,8 +213,8 @@ export default function CustomerApp({data}){
     if(authBusy)return;
     setAuthBusy(true);setAuthError('');
     try{
-      const response=await fetch(`/api/customer/${authMode==='signup'?'signup':'login'}`,{
-        method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},
+      const response=await fetch(apiUrl(`/api/customer/${authMode==='signup'?'signup':'login'}`),{
+        method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},
         body:JSON.stringify(authMode==='signup'?authForm:{phone:authForm.phone,password:authForm.password}),
       });
       const result=await response.json().catch(()=>({}));
@@ -231,7 +232,7 @@ export default function CustomerApp({data}){
     finally{setAuthBusy(false);}
   }
   async function logoutCustomer(){
-    try{await fetch('/api/customer/logout',{method:'POST',credentials:'same-origin'});}catch{}
+    try{await fetch(apiUrl('/api/customer/logout'),{method:'POST',credentials:'include'});}catch{}
     setCustomerAuth(null);setAuthOpen(false);setPendingAuthAction(null);setNotice('You are signed out. Log in to use your cart.');go('products');
   }
   const go=(p)=>{if(p==='cart'&&!customerAuth){startCustomerAuth({type:'cart'});return;}setPage(p);if(p==='products'){setSearch('');setCategory('All Products');setMetal('All metals');setAvailability('all');setMinPrice('');setMaxPrice('');setSortBy('featured');}const path=p==='product'&&detailProductId?`/product/${encodeURIComponent(detailProductId)}`:(customerRoutes[p]||'/');if(window.location.pathname!==path)window.history.pushState({},'',path);setMenu(false);setSuccess(null);window.scrollTo({top:0,behavior:'smooth'});};
@@ -341,8 +342,8 @@ export default function CustomerApp({data}){
     submissionLock.current=true;
     setSubmitting(true);
     try{
-      const createResponse=await fetch('/api/payments/razorpay/order',{
-        method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},
+      const createResponse=await fetch(apiUrl('/api/payments/razorpay/order'),{
+        method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           items:cartLines.map(({product,quantity})=>({id:product.id,quantity})),
           customer:{name:customer.name,phone:customer.phone,address:contact.address,landmark:contact.landmark,pin:contact.pin},
@@ -364,8 +365,8 @@ export default function CustomerApp({data}){
           handler:async response=>{
             verifying=true;
             try{
-              const verifyResponse=await fetch('/api/payments/razorpay/verify',{
-                method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(response),
+              const verifyResponse=await fetch(apiUrl('/api/payments/razorpay/verify'),{
+                method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(response),
               });
               const verified=await verifyResponse.json().catch(()=>({}));
               if(!verifyResponse.ok)throw new Error(verified.error||'Could not verify the Razorpay payment.');
@@ -483,8 +484,8 @@ export default function CustomerApp({data}){
     setSubmitting(true);
     try {
       const file=quoteFile ? await readAttachment(quoteFile) : null;
-      const response=await fetch('/api/quotes',{
-        method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({quote:request,file}),
+      const response=await fetch(apiUrl('/api/quotes'),{
+        method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({quote:request,file}),
       });
       if(!response.ok) {
         const body=await response.json().catch(()=>null);

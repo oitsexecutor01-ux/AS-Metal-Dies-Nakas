@@ -8,6 +8,7 @@ import { inr, day, phoneNumber, whatsappUrl, ProductArt, printInvoice, downloadJ
 
 import { BusinessReports, CustomerHistory, PromotionSettings } from './StaffBusiness.jsx';
 import { toast } from 'react-toastify';
+import { apiUrl } from '../lib/api.js';
 
 const blankProduct={name:'',category:'Industrial Dies',metal:'Tool Steel D2',weight:'',makingCharge:'',fixedPrice:'',deliveryCharge:'',shape:'round',stock:'',description:'',dimensions:'',image:'',featured:false,quoteOnly:false};
 const nav=[['dashboard','Dashboard',LayoutDashboard],['rates','Metal rates',ChartNoAxesCombined],['products','Products',Layers3],['users','Users',Users],['customers','Customers',Users],['orders','Orders & quotes',ClipboardList],['reports','Reports',ChartNoAxesCombined],['promotions','Promotions',Star],['settings','Settings',SlidersHorizontal]];
@@ -61,7 +62,7 @@ export default function StaffApp({data}) {
   useEffect(()=>{
     if(tab!=='users')return;
     let active=true;setUsersLoading(true);setUsersError('');
-    fetch('/api/staff/customers',{cache:'no-store'}).then(async response=>{
+    fetch(apiUrl('/api/staff/customers'),{credentials:'include',cache:'no-store'}).then(async response=>{
       const result=await response.json();if(!response.ok)throw Error(result.error||'Could not load registered users.');
       if(active){setRegisteredUsers(Array.isArray(result)?result:[]);setSelectedUserId(current=>result.some(user=>user.id===current)?current:result[0]?.id||'');}
     }).catch(error=>{if(active)setUsersError(error.message);}).finally(()=>{if(active)setUsersLoading(false);});
@@ -116,7 +117,7 @@ export default function StaffApp({data}) {
     updateStore(d=>{d.products=d.products.filter(p=>p.id!==id);});}
   async function updateImage(file){if(!file)return;setImageUploading(true);try {
     const image=await shrinkImage(file);
-    const response=await fetch('/api/product-images',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image})});
+    const response=await fetch(apiUrl('/api/product-images'),{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({image})});
     const result=await response.json();if(!response.ok)throw Error(result.error||'Image upload failed.');
     setProductForm(f=>({...f,image:result.url}));alertMsg('Image uploaded to Cloudinary.');
   }catch(e){alertMsg(e.message);}finally{setImageUploading(false);}}
@@ -260,7 +261,7 @@ export default function StaffApp({data}) {
             {o.dimensions&&<div className="order-note"><strong>Dimensions / material:</strong> {o.dimensions}</div>}
             {o.notes&&<div className="order-note">{o.notes}</div>}
             {o.type==='quote'&&o.attachment?.id&&<div className="order-actions">
-              <a className="btn outline" href={`/api/quote-attachments/${encodeURIComponent(o.attachment.id)}`}>
+              <a className="btn outline" href={apiUrl(`/api/quote-attachments/${encodeURIComponent(o.attachment.id)}`)} target="_blank" rel="noreferrer">
                 <Download size={16}/> {o.attachment.name || 'Download drawing'}
               </a>
             </div>}

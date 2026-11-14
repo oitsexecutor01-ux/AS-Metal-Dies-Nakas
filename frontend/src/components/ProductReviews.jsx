@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Star } from 'lucide-react';
 import { day, readAttachment } from '../lib/utils.jsx';
 import { toast } from 'react-toastify';
+import { apiUrl } from '../lib/api.js';
 
 export function ProductReviews({ productId, customer, onSignIn }) {
   const [result,setResult]=useState(null);
@@ -11,7 +12,7 @@ export function ProductReviews({ productId, customer, onSignIn }) {
   const [sending,setSending]=useState(false);
   useEffect(()=>{
     const controller=new AbortController();
-    fetch('/api/products/'+encodeURIComponent(productId)+'/reviews',{signal:controller.signal})
+    fetch(apiUrl('/api/products/'+encodeURIComponent(productId)+'/reviews'),{signal:controller.signal})
       .then(response=>{
         if(!response.ok) throw new Error('Reviews unavailable');
         return response.json();
@@ -26,14 +27,14 @@ export function ProductReviews({ productId, customer, onSignIn }) {
     if(!comment.trim()){toast.error('Write a short review before submitting.');return;}
     setSending(true);
     try{
-      const response=await fetch(`/api/products/${encodeURIComponent(productId)}/reviews`,{
-        method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},
+      const response=await fetch(apiUrl(`/api/products/${encodeURIComponent(productId)}/reviews`),{
+        method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({rating,comment:comment.trim()}),
       });
       const body=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(body.error||'Could not publish your review.');
       setRating(0);setComment('');
-      const updated=await fetch('/api/products/'+encodeURIComponent(productId)+'/reviews',{cache:'no-store'});
+      const updated=await fetch(apiUrl('/api/products/'+encodeURIComponent(productId)+'/reviews'),{cache:'no-store'});
       if(updated.ok)setResult(await updated.json());
       toast.success('Your review and star rating were published.');
     }catch(error){toast.error(error.message||'Could not publish your review.');}
@@ -60,8 +61,8 @@ export function ProductReviews({ productId, customer, onSignIn }) {
         {result.reviews.map(review=><article key={review.id} className="product-review">
           <strong>{review.rating} / 5 stars</strong> <small>· {review.customerName||'Verified customer'} · {day(review.createdAt)}</small>
           <p>{review.comment}</p>
-          {review.hasPhoto&&<a href={'/api/reviews/'+review.id+'/photo'} target="_blank" rel="noreferrer">
-            <img src={'/api/reviews/'+review.id+'/photo'} loading="lazy" alt="Product photo submitted by a customer"/>
+          {review.hasPhoto&&<a href={apiUrl('/api/reviews/'+review.id+'/photo')} target="_blank" rel="noreferrer">
+            <img src={apiUrl('/api/reviews/'+review.id+'/photo')} loading="lazy" alt="Product photo submitted by a customer"/>
           </a>}
         </article>)}
       </>}
@@ -88,8 +89,8 @@ export function ReviewForm({ order, items }) {
     lock.current=true;
     setSending(true);
     try {
-      const response=await fetch('/api/reviews',{
-        method:'POST',headers:{'Content-Type':'application/json'},
+      const response=await fetch(apiUrl('/api/reviews'),{
+        method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({orderId:order.id,phone:order.customer.phone,productId,rating:Number(rating),
           comment:comment.trim(),photo:photo ? await readAttachment(photo) : null}),
       });

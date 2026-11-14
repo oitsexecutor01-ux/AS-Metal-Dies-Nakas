@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import cors from 'cors';
 import mongoose from 'mongoose';
 import { createHash, createHmac, randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
@@ -62,12 +63,14 @@ function getCookie(req, name) {
   return entry ? decodeURIComponent(entry.slice(name.length + 1)) : '';
 }
 function writeSessionCookie(res, token) {
-  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-  res.setHeader('Set-Cookie', `${sessionCookie}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000${secure}`);
+  const isProd = process.env.NODE_ENV === 'production';
+  const sameSite = isProd ? '; SameSite=None; Secure' : '; SameSite=Lax';
+  res.setHeader('Set-Cookie', `${sessionCookie}=${encodeURIComponent(token)}; Path=/; HttpOnly${sameSite}; Max-Age=2592000`);
 }
 function clearSessionCookie(res) {
-  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-  res.setHeader('Set-Cookie', `${sessionCookie}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`);
+  const isProd = process.env.NODE_ENV === 'production';
+  const sameSite = isProd ? '; SameSite=None; Secure' : '; SameSite=Lax';
+  res.setHeader('Set-Cookie', `${sessionCookie}=; Path=/; HttpOnly${sameSite}; Max-Age=0`);
 }
 async function createCustomerSession(customer, res) {
   const token = randomBytes(32).toString('base64url');
@@ -140,6 +143,7 @@ async function razorpayRequest(path, method, payload) {
 }
 
 app.disable('x-powered-by');
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '12mb' }));
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected' }));
 app.post('/api/customer/signup', async (req, res, next) => {
