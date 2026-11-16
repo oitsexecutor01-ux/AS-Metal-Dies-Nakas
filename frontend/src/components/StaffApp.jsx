@@ -2,16 +2,19 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { LayoutDashboard, Layers3, Users, ClipboardList, SlidersHorizontal, ChartNoAxesCombined,
   LogOut, Menu, X, Plus, Edit3, Trash2, Save, FileText, MessageCircle,
   Wallet, Search, Download, Upload, Package, Clock, ArrowRight, ExternalLink,
-  ShieldAlert, Database, ImagePlus, IndianRupee, Star, RefreshCw } from 'lucide-react';
+  ShieldAlert, Database, ImagePlus, IndianRupee, Star, RefreshCw, Receipt, Printer,
+  ArrowLeft, Phone, ChevronRight } from 'lucide-react';
 import { updateStore, replaceStore, productPrice, makeId } from '../lib/store.js';
 import { inr, day, phoneNumber, whatsappUrl, ProductArt, printInvoice, downloadJSON } from '../lib/utils.jsx';
+import { downloadInvoicePDF, shareInvoiceWhatsApp } from '../lib/invoicePdf.js';
 
 import { BusinessReports, CustomerHistory, PromotionSettings } from './StaffBusiness.jsx';
+import StaffBilling from './StaffBilling.jsx';
 import { toast } from 'react-toastify';
 import { apiUrl } from '../lib/api.js';
 
 const blankProduct={name:'',category:'Industrial Dies',metal:'Tool Steel D2',weight:'',makingCharge:'',fixedPrice:'',deliveryCharge:'',shape:'round',stock:'',description:'',dimensions:'',image:'',featured:false,quoteOnly:false};
-const nav=[['dashboard','Dashboard',LayoutDashboard],['rates','Metal rates',ChartNoAxesCombined],['products','Products',Layers3],['users','Users',Users],['customers','Customers',Users],['orders','Orders & quotes',ClipboardList],['reports','Reports',ChartNoAxesCombined],['promotions','Promotions',Star],['settings','Settings',SlidersHorizontal]];
+const nav=[['dashboard','Dashboard',LayoutDashboard],['billing','Billing / POS',Receipt],['rates','Metal rates',ChartNoAxesCombined],['products','Products',Layers3],['users','Users',Users],['customers','Customers',Users],['orders','Orders & quotes',ClipboardList],['reports','Reports',ChartNoAxesCombined],['promotions','Promotions',Star],['settings','Settings',SlidersHorizontal]];
 const staffTabs=nav.map(([id])=>id);
 function staffTabFromPath(path){const tab=path.replace(/^\/staff\/?/,'').replace(/\/$/,'');return staffTabs.includes(tab)?tab:'dashboard';}
 const statuses=['Pending','Processing','Shipped','Delivered','Cancelled'];
@@ -47,6 +50,7 @@ export default function StaffApp({data}) {
   const [rateDate,setRateDate]=useState(data.dailyRateDate);
   const [orderFilter,setOrderFilter]=useState('All');
   const [orderSearch,setOrderSearch]=useState('');
+  const [selectedOrderId,setSelectedOrderId]=useState(null);
   const [quoteAmounts,setQuoteAmounts]=useState({});
   const [registeredUsers,setRegisteredUsers]=useState([]);
   const [selectedUserId,setSelectedUserId]=useState('');
@@ -81,9 +85,10 @@ export default function StaffApp({data}) {
     const match=orderFilter==='All'||(orderFilter==='Quotes' ? o.type==='quote':o.status===orderFilter);
     return match&&`${o.id} ${o.customer?.name} ${o.customer?.phone} ${o.items.map(i=>i.name).join(' ')}`.toLowerCase().includes(orderSearch.toLowerCase());
   });
-  const navigate=(value)=>{setTab(value);const path=value==='dashboard'?'/staff/':`/staff/${value}`;if(window.location.pathname!==path)window.history.pushState({},'',path);setMobile(false);setOrderSearch('');setOrderFilter('All');window.scrollTo(0,0);};
+  const selectedOrder=data.orders.find(o=>o.id===selectedOrderId);
+  const navigate=(value)=>{setTab(value);const path=value==='dashboard'?'/staff/':`/staff/${value}`;if(window.location.pathname!==path)window.history.pushState({},'',path);setMobile(false);setOrderSearch('');setOrderFilter('All');setSelectedOrderId(null);window.scrollTo(0,0);};
   useEffect(()=>{const sync=()=>setTab(staffTabFromPath(window.location.pathname));window.addEventListener('popstate',sync);return()=>window.removeEventListener('popstate',sync);},[]);
-  function openOrder(id){navigate('orders');setOrderSearch(id);}
+  function openOrder(id){navigate('orders');setSelectedOrderId(id);window.scrollTo(0,0);}
   function loginDemo(){sessionStorage.setItem('as-staff-demo','1');setUnlocked(true);}
   function logout(){sessionStorage.removeItem('as-staff-demo');setUnlocked(false);navigate('dashboard');}
   function alertMsg(s){toast(s);}
@@ -195,12 +200,14 @@ export default function StaffApp({data}) {
     <div className="staff-main"><header className="staff-topbar"><button className="mobile-menu" onClick={()=>setMobile(true)} aria-label="Open menu"><Menu/></button><div><span className="staff-breadcrumb">AS / Staff panel</span><h2>{nav.find(n=>n[0]===tab)?.[1]}</h2></div><span className="staff-demo-label">Local demo</span></header>
       <main className="staff-content">
         {tab==='dashboard'&&<>
-          <div className="dashboard-intro"><div><p className="eyebrow dark">OPERATIONS OVERVIEW</p><h1>Business dashboard</h1><p>Manage products, rates, enquiries, orders and customer records.</p></div><button className="btn primary" onClick={()=>navigate('products')}><Plus size={17}/> Add product</button></div>
+          <div className="dashboard-intro"><div><p className="eyebrow dark">OPERATIONS OVERVIEW</p><h1>Business dashboard</h1><p>Manage products, rates, enquiries, orders and customer records.</p></div><div style={{display:'flex',gap:9,flexWrap:'wrap'}}><button className="btn primary" onClick={()=>navigate('billing')}><Receipt size={17}/> Billing / POS</button><button className="btn outline" onClick={()=>navigate('products')}><Plus size={17}/> Add product</button></div></div>
           <div className="stat-grid"><Stat label="Catalog products" value={stats.products} icon={<Layers3/>}/><Stat label="Saved customers" value={stats.customers} icon={<Users/>}/><Stat label="Orders" value={stats.orders} icon={<ClipboardList/>}/><Stat label="Quotation requests" value={stats.quotes} icon={<MessageCircle/>}/><Stat label="Payments marked paid" value={currency(stats.collected)} icon={<Wallet/>}/><Stat label="Outstanding / unpaid" value={currency(stats.outstanding)} icon={<IndianRupee/>}/></div>
           <div className="panel"><div className="panel-head"><div><h2>Recent activity</h2><p>The latest orders and quotation requests</p></div><button className="btn outline" onClick={()=>navigate('orders')}>See all <ArrowRight size={16}/></button></div>
-            {data.orders.length?data.orders.slice(0,5).map(o=><div className="activity-row" key={o.id}><div className="activity-icon">{o.type==='quote'?<MessageCircle/>:<Package/>}</div><div><b>{o.customer?.name||'Customer'}</b><small>{o.id} · {o.type==='quote'?'Quotation request':'Purchase order'}</small></div><span className={`tag ${o.status==='Delivered'?'good':''}`}>{o.status}</span><strong>{o.type==='quote'?'Quote':currency(o.total)}</strong></div>):<div className="empty-minor">No customer activity yet. New orders placed in the customer storefront will appear here.</div>}</div>
-          <div className="quick-grid"><button className="quick-card" onClick={()=>navigate('rates')}><ChartNoAxesCombined/><strong>Update metal rates</strong><span>Changes recalculate variable product prices.</span></button><button className="quick-card" onClick={()=>navigate('products')}><Layers3/><strong>Manage catalog</strong><span>Add product photos, prices, stock and descriptions.</span></button><button className="quick-card" onClick={()=>navigate('settings')}><Database/><strong>Backup data</strong><span>Export demo records as a JSON backup.</span></button></div>
+            {data.orders.length?data.orders.slice(0,5).map(o=><div className="activity-row" key={o.id} onClick={()=>openOrder(o.id)} style={{cursor:'pointer'}} title="View order details"><div className="activity-icon">{o.type==='quote'?<MessageCircle/>:<Package/>}</div><div><b>{o.customer?.name||'Customer'}</b><small>{o.id} · {o.type==='quote'?'Quotation request':'Purchase order'}</small></div><span className={`tag ${o.status==='Delivered'?'good':''}`}>{o.status}</span><strong>{o.type==='quote'?'Quote':currency(o.total)}</strong></div>):<div className="empty-minor">No customer activity yet. New orders placed in the customer storefront will appear here.</div>}</div>
+          <div className="quick-grid"><button className="quick-card" onClick={()=>navigate('billing')}><Receipt/><strong>Billing &amp; Invoices</strong><span>Create on-the-spot bills, print receipts &amp; send WhatsApp PDF.</span></button><button className="quick-card" onClick={()=>navigate('rates')}><ChartNoAxesCombined/><strong>Update metal rates</strong><span>Changes recalculate variable product prices.</span></button><button className="quick-card" onClick={()=>navigate('products')}><Layers3/><strong>Manage catalog</strong><span>Add product photos, prices, stock and descriptions.</span></button></div>
         </>}
+
+        {tab==='billing'&&<StaffBilling data={data} onOpenOrder={openOrder}/>}
 
         {tab==='rates'&&<><div className="page-title compact"><h1>Metal rates</h1><p>Set the rate per kilogram. Variable-priced products use <b>metal rate × weight + making charge</b>.</p></div>
           <form className="panel" onSubmit={saveRates}><div className="panel-head"><h2>Daily metal pricing</h2><label className="inline-label">Effective date <input type="date" value={rateDate} onChange={e=>setRateDate(e.target.value)}/></label></div>
@@ -252,29 +259,134 @@ export default function StaffApp({data}) {
           <div className="panel"><h2>Customer records ({data.customers.length})</h2><div className="table-scroll"><table className="data-table"><thead><tr><th>Name</th><th>Phone</th><th>Address</th><th>Actions</th></tr></thead><tbody>{data.customers.map(c=><tr key={c.id}><td><b>{c.name}</b></td><td>{c.phone||'-'}</td><td>{c.address||'-'}</td><td><div className="table-actions">{c.phone&&<a href={whatsappUrl(c.phone,`Hello ${c.name}, this is ${data.shop.name}.`)} target="_blank" rel="noreferrer" className="btn outline"><MessageCircle size={15}/> WhatsApp</a>}<button className="btn icon-btn danger-outline" onClick={()=>removeCustomer(c.id)}><Trash2 size={15}/></button></div></td></tr>)}</tbody></table></div>{!data.customers.length&&<p className="muted">No customers saved.</p>}</div>
         </>}
 
-        {tab==='orders'&&<><div className="page-title compact"><h1>Orders & quotations</h1><p>View transactions, update statuses, confirm manual payments and reply to enquiries.</p></div>
-          <div className="panel"><div className="catalog-controls"><label className="search-field"><Search size={17}/><input placeholder="Order ID, customer or product" value={orderSearch} onChange={e=>setOrderSearch(e.target.value)}/></label><select value={orderFilter} onChange={e=>setOrderFilter(e.target.value)}><option>All</option><option>Quotes</option>{statuses.map(s=><option key={s}>{s}</option>)}<option>Quotation Requested</option><option>Quoted</option><option>Accepted</option></select></div></div>
-          {filteredOrders.length?filteredOrders.map(o=><article className="panel staff-order" key={o.id}><div className="order-top"><div><span className="muted">{o.type==='quote'?(o.quoteKind==='bulk'?'BULK PRICING REQUEST':'CUSTOM QUOTATION'):'PURCHASE ORDER'} · {day(o.createdAt)}</span><h2>#{o.id}</h2><p>{o.customer?.name} · {o.customer?.phone}</p></div><span className={`tag ${o.status==='Delivered'?'good':''}`}>{o.status}</span></div>
-            <div className="order-detail-grid"><div><small>Products</small><strong>{o.items.map(i=>`${i.name} × ${i.qty}`).join(', ')}</strong></div><div><small>Amount</small><strong>{o.type==='quote'?(o.quotedAmount?currency(o.quotedAmount):'Pending quote'):currency(o.total)}</strong></div><div><small>Expected delivery</small><strong>{day(o.deliveryDate)}</strong></div><div><small>Payment</small><strong>{o.type==='quote'?'Not applicable':`${o.payment?.status||'Unpaid'} · ${o.payment?.method||''}`}</strong></div></div>
-            {o.customer?.address&&<div className="order-note"><strong>Delivery address:</strong> {o.customer.address}</div>}
-            {o.customer?.landmark&&<div className="order-note"><strong>Landmark:</strong> {o.customer.landmark}</div>}
-            {o.dimensions&&<div className="order-note"><strong>Dimensions / material:</strong> {o.dimensions}</div>}
-            {o.notes&&<div className="order-note">{o.notes}</div>}
-            {o.type==='quote'&&o.attachment?.id&&<div className="order-actions">
-              <a className="btn outline" href={apiUrl(`/api/quote-attachments/${encodeURIComponent(o.attachment.id)}`)} target="_blank" rel="noreferrer">
-                <Download size={16}/> {o.attachment.name || 'Download drawing'}
-              </a>
-            </div>}
-            {o.type==='quote'?(o.status==='Accepted'?<p className="order-note">Customer acceptance recorded {day(o.acceptedAt)}.</p>:
-              <form className="quote-inline" onSubmit={e=>{e.preventDefault();setQuotePrice(o.id,quoteAmounts[o.id]??o.quotedAmount);}}>
-                <label>Quotation total (₹)<input required type="number" min="0.01" step="0.01" value={quoteAmounts[o.id]??o.quotedAmount??''} onChange={e=>setQuoteAmounts(a=>({...a,[o.id]:e.target.value}))}/></label>
-                <button className="btn primary" type="submit">Save quotation</button>
-                {o.status==='Quoted'&&o.quotedAmount>0&&<button className="btn outline" type="button" onClick={()=>recordQuoteAcceptance(o.id,o.quotedAmount)}>Record customer acceptance</button>}
-              </form>):
-              <div className="order-inline"><label>Order status <select value={o.status} onChange={e=>orderStatus(o.id,e.target.value)}>{statuses.map(s=><option key={s}>{s}</option>)}</select></label><button className="btn outline" onClick={()=>setPaid(o.id,o.payment?.status!=='Paid')}><Wallet size={15}/>{o.payment?.status==='Paid'?'Mark unpaid':'Mark payment paid'}</button></div>}
-            <div className="order-actions"><button className="btn outline" onClick={()=>contactCustomer(o)}><MessageCircle size={16}/> {o.type==='quote'&&o.quotedAmount?'Send quote on WhatsApp':'WhatsApp'}</button>{o.type==='order'&&<button className="btn outline" onClick={()=>printInvoice(o,data.shop)}><FileText size={16}/> Invoice / PDF</button>}</div>
-          </article>):<div className="panel empty-minor">No orders found for this filter.</div>}
-        </>}
+        {tab==='orders'&&<>{selectedOrderId?(selectedOrder?(
+          <div className="order-detail-page">
+            <div className="order-detail-header-bar">
+              <button className="btn outline" onClick={()=>{setSelectedOrderId(null);window.scrollTo({top:0,behavior:'smooth'});}}>
+                <ArrowLeft size={16}/> Back to orders
+              </button>
+              <div className="order-detail-header-info">
+                <span className="muted">{selectedOrder.type==='quote'?(selectedOrder.quoteKind==='bulk'?'BULK PRICING REQUEST':'CUSTOM QUOTATION'):'PURCHASE ORDER'} · {day(selectedOrder.createdAt)}</span>
+                <h2>#{selectedOrder.id}</h2>
+              </div>
+              <span className={`tag ${selectedOrder.status==='Delivered'?'good':''}`}>{selectedOrder.status}</span>
+            </div>
+
+            <div className="panel">
+              <div className="panel-head"><h2>Customer &amp; delivery details</h2></div>
+              <div className="order-detail-grid">
+                <div><small>Customer name</small><strong>{selectedOrder.customer?.name||'Walk-in / Customer'}</strong></div>
+                <div><small>Mobile number</small><strong>{selectedOrder.customer?.phone?<a href={`tel:${selectedOrder.customer.phone}`} style={{textDecoration:'underline'}}>{selectedOrder.customer.phone}</a>:'—'}</strong></div>
+                <div><small>Order type</small><strong>{selectedOrder.type==='quote'?'Quotation Request':'Purchase Order'}</strong></div>
+                <div><small>Expected delivery</small><strong>{day(selectedOrder.deliveryDate)}</strong></div>
+              </div>
+              {selectedOrder.customer?.address&&<div className="order-note" style={{marginTop:12}}><strong>Delivery address:</strong> {selectedOrder.customer.address}</div>}
+              {selectedOrder.customer?.landmark&&<div className="order-note" style={{marginTop:8}}><strong>Landmark:</strong> {selectedOrder.customer.landmark}</div>}
+              {selectedOrder.dimensions&&<div className="order-note" style={{marginTop:8}}><strong>Dimensions / material:</strong> {selectedOrder.dimensions}</div>}
+              {selectedOrder.notes&&<div className="order-note" style={{marginTop:8}}><strong>Customer notes:</strong> {selectedOrder.notes}</div>}
+            </div>
+
+            <div className="panel">
+              <div className="panel-head"><h2>Ordered items &amp; billing</h2></div>
+              <div className="table-scroll">
+                <table className="data-table">
+                  <thead>
+                    <tr><th>Product</th><th>Quantity</th><th>Unit price</th><th>Total</th></tr>
+                  </thead>
+                  <tbody>
+                    {selectedOrder.items?.map((item,idx)=><tr key={idx}>
+                      <td><b>{item.name}</b></td>
+                      <td>{item.qty}</td>
+                      <td>{item.unitPrice?currency(item.unitPrice):'—'}</td>
+                      <td><b>{item.subtotal?currency(item.subtotal):'—'}</b></td>
+                    </tr>)}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{display:'flex',justifyContent:'flex-end',marginTop:16}}>
+                <div style={{minWidth:260,display:'grid',gap:8,fontSize:13}}>
+                  <div style={{display:'flex',justifyContent:'space-between',color:'#687788'}}><span>Subtotal</span><span>{currency(selectedOrder.subtotal||0)}</span></div>
+                  {(selectedOrder.tax>0)&&<div style={{display:'flex',justifyContent:'space-between',color:'#687788'}}><span>GST</span><span>{currency(selectedOrder.tax)}</span></div>}
+                  <div style={{display:'flex',justifyContent:'space-between',borderTop:'1px solid #e2e8f0',paddingTop:8,fontWeight:800,fontSize:16,color:'#14253a'}}>
+                    <span>Total amount</span>
+                    <span>{selectedOrder.type==='quote'?(selectedOrder.quotedAmount?currency(selectedOrder.quotedAmount):'Pending quote'):currency(selectedOrder.total)}</span>
+                  </div>
+                  <div style={{display:'flex',justifyContent:'space-between',color:'#687788',fontSize:12}}>
+                    <span>Payment</span>
+                    <b>{selectedOrder.type==='quote'?'Not applicable':`${selectedOrder.payment?.status||'Unpaid'} · ${selectedOrder.payment?.method||''}`}</b>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="panel">
+              <div className="panel-head"><h2>Manage status &amp; actions</h2></div>
+              {selectedOrder.type==='quote'&&selectedOrder.attachment?.id&&<div className="order-actions" style={{marginBottom:14}}>
+                <a className="btn outline" href={apiUrl(`/api/quote-attachments/${encodeURIComponent(selectedOrder.attachment.id)}`)} target="_blank" rel="noreferrer">
+                  <Download size={16}/> {selectedOrder.attachment.name || 'Download drawing'}
+                </a>
+              </div>}
+              {selectedOrder.type==='quote'?(selectedOrder.status==='Accepted'?<p className="order-note">Customer acceptance recorded {day(selectedOrder.acceptedAt)}.</p>:
+                <form className="quote-inline" onSubmit={e=>{e.preventDefault();setQuotePrice(selectedOrder.id,quoteAmounts[selectedOrder.id]??selectedOrder.quotedAmount);}}>
+                  <label>Quotation total (₹)<input required type="number" min="0.01" step="0.01" value={quoteAmounts[selectedOrder.id]??selectedOrder.quotedAmount??''} onChange={e=>setQuoteAmounts(a=>({...a,[selectedOrder.id]:e.target.value}))}/></label>
+                  <button className="btn primary" type="submit">Save quotation</button>
+                  {selectedOrder.status==='Quoted'&&selectedOrder.quotedAmount>0&&<button className="btn outline" type="button" onClick={()=>recordQuoteAcceptance(selectedOrder.id,selectedOrder.quotedAmount)}>Record customer acceptance</button>}
+                </form>):
+                <div className="order-inline" style={{marginTop:0,marginBottom:16}}><label>Order status <select value={selectedOrder.status} onChange={e=>orderStatus(selectedOrder.id,e.target.value)}>{statuses.map(s=><option key={s}>{s}</option>)}</select></label><button className="btn outline" onClick={()=>setPaid(selectedOrder.id,selectedOrder.payment?.status!=='Paid')}><Wallet size={15}/>{selectedOrder.payment?.status==='Paid'?'Mark unpaid':'Mark payment paid'}</button></div>}
+              <div className="order-actions" style={{borderTop:'1px solid #edf0f3',paddingTop:16}}>
+                <button className="btn outline" onClick={()=>contactCustomer(selectedOrder)}><MessageCircle size={16}/> {selectedOrder.type==='quote'&&selectedOrder.quotedAmount?'Send quote on WhatsApp':'WhatsApp'}</button>
+                {selectedOrder.type==='order'&&<>
+                  <button className="btn outline" onClick={()=>printInvoice(selectedOrder,data.shop)} title="Print invoice receipt"><Printer size={16}/> Print</button>
+                  <button className="btn outline" onClick={()=>downloadInvoicePDF(selectedOrder,data.shop)} title="Download official A4 PDF invoice"><Download size={16}/> PDF</button>
+                  <button className="btn outline" style={{color:'#15803d',borderColor:'#bbf7d0'}} onClick={()=>shareInvoiceWhatsApp(selectedOrder,data.shop)} title="Send invoice PDF directly to WhatsApp"><MessageCircle size={16}/> WhatsApp (PDF)</button>
+                </>}
+              </div>
+            </div>
+          </div>
+        ):(
+          <div className="panel empty-minor">
+            <p>Order #{selectedOrderId} was not found.</p>
+            <button className="btn outline" onClick={()=>{setSelectedOrderId(null);window.scrollTo({top:0,behavior:'smooth'});}}><ArrowLeft size={16}/> Back to orders</button>
+          </div>
+        )):(
+          <>
+            <div className="page-title compact"><h1>Orders &amp; quotations</h1><p>View transactions, update statuses, confirm manual payments and reply to enquiries.</p></div>
+            <div className="panel"><div className="catalog-controls"><label className="search-field"><Search size={17}/><input placeholder="Order ID, customer or product" value={orderSearch} onChange={e=>setOrderSearch(e.target.value)}/></label><select value={orderFilter} onChange={e=>setOrderFilter(e.target.value)}><option>All</option><option>Quotes</option>{statuses.map(s=><option key={s}>{s}</option>)}<option>Quotation Requested</option><option>Quoted</option><option>Accepted</option></select></div></div>
+            {filteredOrders.length?(
+              <div className="order-simple-list">
+                {filteredOrders.map(o=>(
+                  <article className="order-simple-card" key={o.id} onClick={()=>{setSelectedOrderId(o.id);window.scrollTo({top:0,behavior:'smooth'});}} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'||e.key===' ')setSelectedOrderId(o.id);}}>
+                    <div className="order-simple-header">
+                      <span className="order-simple-id"><strong>#{o.id}</strong><small className="muted">· {day(o.createdAt)}</small></span>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        {o.type==='quote'&&<span className="tag" style={{background:'#eef2f6',color:'#475569'}}>Quote</span>}
+                        <span className={`tag ${o.status==='Delivered'?'good':''}`}>{o.status}</span>
+                      </div>
+                    </div>
+                    <div className="order-simple-body">
+                      <div className="order-simple-customer">
+                        <small className="order-simple-label">Customer</small>
+                        <b>{o.customer?.name||'Walk-in / Customer'}</b>
+                        <span><Phone size={13}/> {o.customer?.phone||'No phone'}</span>
+                      </div>
+                      <div className="order-simple-products">
+                        <small className="order-simple-label">Ordered Product</small>
+                        <strong>{(o.items||[]).map(i=>`${i.name}${i.qty>1?` × ${i.qty}`:''}`).join(', ')||'No products listed'}</strong>
+                      </div>
+                      <div className="order-simple-price">
+                        <small className="order-simple-label">Price</small>
+                        <strong>{o.type==='quote'?(o.quotedAmount?currency(o.quotedAmount):'Pending quote'):currency(o.total)}</strong>
+                      </div>
+                      <div className="order-simple-action">
+                        <span>Full details</span><ChevronRight size={16}/>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ):<div className="panel empty-minor">No orders found for this filter.</div>}
+          </>
+        )}</>}
 
         {tab==='settings'&&<><div className="page-title compact"><h1>Business settings</h1><p>Store details, invoice details, delivery rules, and local data backups.</p></div>
           <form className="panel form" onSubmit={saveSettings}><h2>Storefront & invoice details</h2><div className="form-grid"><label>Business name<input value={settings.name||''} onChange={e=>setSettings(s=>({...s,name:e.target.value}))}/></label><label>Phone / WhatsApp<input value={settings.phone||''} onChange={e=>setSettings(s=>({...s,phone:e.target.value}))}/></label></div><label>Tagline<input value={settings.tagline||''} onChange={e=>setSettings(s=>({...s,tagline:e.target.value}))}/></label><label>Business address<textarea rows={2} value={settings.address||''} onChange={e=>setSettings(s=>({...s,address:e.target.value}))}/></label><div className="form-grid"><label>GSTIN<input value={settings.gstin||''} onChange={e=>setSettings(s=>({...s,gstin:e.target.value}))}/></label><label>GST %<input type="number" min="0" max="100" step="0.01" value={settings.tax} onChange={e=>setSettings(s=>({...s,tax:e.target.value}))}/></label></div>

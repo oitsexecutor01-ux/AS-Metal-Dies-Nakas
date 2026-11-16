@@ -520,7 +520,7 @@ export default function CustomerApp({data}){
     <header className="customer-header">
       <div className="container header-row">
         <button className="brand unstyled" onClick={()=>go('shop')} aria-label="Home">
-          <span className="brand-mark">AS</span><span><strong>{shop.name}</strong><small>{shop.tagline}</small></span>
+          <img src="/icon-192.png" alt={shop.name} className="brand-mark" width="42" height="42" /><span><strong>{shop.name}</strong><small>{shop.tagline}</small></span>
         </button>
         <nav className={menu?'nav-links open':'nav-links'}>
           <button className={page==='products'?'active':''} onClick={()=>go('products')}>Products</button>
@@ -793,7 +793,7 @@ export default function CustomerApp({data}){
       </section>)}
     </main>}
 
-    <footer className="footer"><div className="container footer-grid"><div><div className="brand footer-brand"><span className="brand-mark">AS</span><span><strong>{shop.name}</strong><small>{shop.tagline}</small></span></div><p>Industrial dies, nakas and metalwork products.</p></div><div><h4>Quick links</h4><button onClick={()=>go('shop')}>Products</button><button onClick={()=>go('quote')}>Custom quotation</button><button onClick={()=>go('orders')}>Track order</button><button onClick={()=>go('contact')}>Contact & policies</button></div><div><h4>Contact</h4><p>{shop.address}</p><p>{shop.phone||'Phone not configured'}</p><a href="/staff/">Staff demo</a></div></div><div className="container footer-bottom">© {new Date().getFullYear()} {shop.name} • React frontend demo, not a live payment website.</div></footer>
+    <footer className="footer"><div className="container footer-grid"><div><div className="brand footer-brand"><img src="/icon-192.png" alt={shop.name} className="brand-mark" width="42" height="42" /><span><strong>{shop.name}</strong><small>{shop.tagline}</small></span></div><p>Industrial dies, nakas and metalwork products.</p></div><div><h4>Quick links</h4><button onClick={()=>go('shop')}>Products</button><button onClick={()=>go('quote')}>Custom quotation</button><button onClick={()=>go('orders')}>Track order</button><button onClick={()=>go('contact')}>Contact & policies</button></div><div><h4>Contact</h4><p>{shop.address}</p><p>{shop.phone||'Phone not configured'}</p><a href="/staff/">Staff demo</a></div></div><div className="container footer-bottom">© {new Date().getFullYear()} {shop.name} • React frontend demo, not a live payment website.</div></footer>
     <a className="whatsapp-float" href={validPhone(shop.phone)?whatsappUrl(shop.phone,'Hello, I would like to enquire about your products.'):`https://wa.me/?text=${encodeURIComponent('Hello, I would like to enquire about your products.')}`} target="_blank" rel="noreferrer" aria-label={`Open WhatsApp chat with ${shop.name}`} title="Chat on WhatsApp"><MessageCircle size={25}/></a>
     <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
       <button className={['products','shop','product'].includes(page)?'active':''} onClick={()=>go('products')}><PackageCheck size={20}/><span>Products</span></button>
