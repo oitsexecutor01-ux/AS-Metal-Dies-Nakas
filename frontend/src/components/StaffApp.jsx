@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { LayoutDashboard, Layers3, Users, ClipboardList, SlidersHorizontal, ChartNoAxesCombined,
   LogOut, Menu, X, Plus, Edit3, Trash2, Save, FileText, MessageCircle,
   Wallet, Search, Download, Upload, Package, Clock, ArrowRight, ExternalLink,
   ShieldAlert, Database, ImagePlus, IndianRupee, Star, RefreshCw, Receipt, Printer,
-  ArrowLeft, Phone, ChevronRight } from 'lucide-react';
+  ArrowLeft, Phone, ChevronRight, UserCheck, BarChart3, TrendingUp } from 'lucide-react';
 import { updateStore, replaceStore, productPrice, makeId } from '../lib/store.js';
 import { inr, day, phoneNumber, whatsappUrl, ProductArt, printInvoice, downloadJSON } from '../lib/utils.jsx';
 import { downloadInvoicePDF, shareInvoiceWhatsApp } from '../lib/invoicePdf.js';
@@ -14,7 +14,18 @@ import { toast } from 'react-toastify';
 import { apiUrl } from '../lib/api.js';
 
 const blankProduct={name:'',category:'Industrial Dies',metal:'Tool Steel D2',weight:'',makingCharge:'',fixedPrice:'',deliveryCharge:'',shape:'round',stock:'',description:'',dimensions:'',image:'',featured:false,quoteOnly:false};
-const nav=[['dashboard','Dashboard',LayoutDashboard],['billing','Billing / POS',Receipt],['rates','Metal rates',ChartNoAxesCombined],['products','Products',Layers3],['users','Users',Users],['customers','Customers',Users],['orders','Orders & quotes',ClipboardList],['reports','Reports',ChartNoAxesCombined],['promotions','Promotions',Star],['settings','Settings',SlidersHorizontal]];
+const nav=[
+  ['dashboard','Dashboard',LayoutDashboard],
+  ['billing','Billing / POS',Receipt],
+  ['rates','Metal rates',TrendingUp],
+  ['products','Products',Layers3],
+  ['users','Users',Users],
+  ['customers','Customers',UserCheck],
+  ['orders','Orders & quotes',ClipboardList],
+  ['reports','Reports',BarChart3],
+  ['promotions','Promotions',Star],
+  ['settings','Settings',SlidersHorizontal]
+];
 const staffTabs=nav.map(([id])=>id);
 function staffTabFromPath(path){const tab=path.replace(/^\/staff\/?/,'').replace(/\/$/,'');return staffTabs.includes(tab)?tab:'dashboard';}
 const statuses=['Pending','Processing','Shipped','Delivered','Cancelled'];
@@ -58,6 +69,45 @@ export default function StaffApp({data}) {
   const [usersLoading,setUsersLoading]=useState(false);
   const [usersError,setUsersError]=useState('');
   const currency=n=>inr(n);
+
+  const navItemRefs = useRef({});
+  const scrollContainerRef = useRef(null);
+
+  useEffect(() => {
+    const activeEl = navItemRefs.current[tab];
+    if (activeEl && typeof activeEl.scrollIntoView === 'function') {
+      activeEl.scrollIntoView({
+        behavior: 'smooth',
+        inline: 'center',
+        block: 'nearest'
+      });
+    }
+  }, [tab]);
+
+  const handleNavMouseDown = (e) => {
+    const slider = scrollContainerRef.current;
+    if (!slider) return;
+    slider.dataset.isDown = 'true';
+    slider.dataset.startX = String(e.pageX - slider.offsetLeft);
+    slider.dataset.scrollLeftStart = String(slider.scrollLeft);
+  };
+  const handleNavMouseLeave = () => {
+    const slider = scrollContainerRef.current;
+    if (slider) slider.dataset.isDown = 'false';
+  };
+  const handleNavMouseUp = () => {
+    const slider = scrollContainerRef.current;
+    if (slider) slider.dataset.isDown = 'false';
+  };
+  const handleNavMouseMove = (e) => {
+    const slider = scrollContainerRef.current;
+    if (!slider || slider.dataset.isDown !== 'true') return;
+    const x = e.pageX - slider.offsetLeft;
+    const startX = Number(slider.dataset.startX || 0);
+    const scrollLeftStart = Number(slider.dataset.scrollLeftStart || 0);
+    const walk = (x - startX) * 1.5;
+    slider.scrollLeft = scrollLeftStart - walk;
+  };
 
   useEffect(()=>setSettings(data.shop),[data.shop]);
   useEffect(()=>setRateValues(Object.fromEntries(data.metals.map(m=>[m.id,String(m.rate)]))),[data.metals]);
@@ -186,12 +236,12 @@ export default function StaffApp({data}) {
     catch(err){alertMsg(`Import failed: ${err.message}`);}finally{e.target.value='';}}
 
   if(!unlocked) return <div className="staff-login-page"><div className="staff-login-card">
-    <div className="brand-mark large">AS</div><h1>{data.shop.name}</h1><p>Staff management panel</p><div className="demo-warning"><ShieldAlert size={23}/><div><strong>Local React demonstration</strong><p>The original app checked its password in browser JavaScript, which is not secure. This conversion intentionally does not embed your provided credentials. Connect a secure server-side authentication system before publishing.</p></div></div>
+    <img src="/icon-192.png" alt={data.shop.name} className="brand-mark large" width="69" height="69" /><h1>{data.shop.name}</h1><p>Staff management panel</p><div className="demo-warning"><ShieldAlert size={23}/><div><strong>Local React demonstration</strong><p>The original app checked its password in browser JavaScript, which is not secure. This conversion intentionally does not embed your provided credentials. Connect a secure server-side authentication system before publishing.</p></div></div>
     <button className="btn primary full" onClick={loginDemo}>Open staff demo <ArrowRight size={18}/></button><a href="/" className="back-link">Go to customer storefront</a></div></div>;
 
   return <div className="staff-layout">
     <aside className={mobile?'staff-sidebar open':'staff-sidebar'}>
-      <div className="sidebar-brand"><div className="brand-mark">AS</div><div><strong>{data.shop.name}</strong><small>Staff control center</small></div><button className="mobile-menu sidebar-close" onClick={()=>setMobile(false)}><X/></button></div>
+      <div className="sidebar-brand"><img src="/icon-192.png" alt={data.shop.name} className="brand-mark" width="42" height="42" /><div><strong>{data.shop.name}</strong><small>Staff control center</small></div><button className="mobile-menu sidebar-close" onClick={()=>setMobile(false)}><X/></button></div>
       <div className="sidebar-label">WORKSPACE</div>
       <nav className="sidebar-nav">{nav.map(([id,label,Icon])=><button key={id} className={id===tab?'active':''} onClick={()=>navigate(id)}><Icon size={19}/>{label}{id===tab&&<span>›</span>}</button>)}</nav>
       <div className="sidebar-bottom"><a href="/" target="_blank" rel="noreferrer"><ExternalLink size={17}/> Customer storefront</a><button onClick={logout}><LogOut size={17}/> Exit demo</button></div>
@@ -402,6 +452,60 @@ export default function StaffApp({data}) {
         </>}
       </main>
     </div>
+    <nav className="staff-bottom-nav" aria-label="Staff mobile navigation">
+      <div
+        className="staff-bottom-nav-scroll"
+        ref={scrollContainerRef}
+        onMouseDown={handleNavMouseDown}
+        onMouseLeave={handleNavMouseLeave}
+        onMouseUp={handleNavMouseUp}
+        onMouseMove={handleNavMouseMove}
+      >
+        {nav.map(([id, label, Icon]) => {
+          const isActive = id === tab;
+          return (
+            <button
+              key={id}
+              ref={el => { navItemRefs.current[id] = el; }}
+              className={`staff-bottom-nav-item ${isActive ? 'active' : ''}`}
+              onClick={() => navigate(id)}
+              type="button"
+              aria-current={isActive ? 'page' : undefined}
+            >
+              <div className="staff-bottom-nav-icon">
+                <Icon size={18} />
+                {isActive && <span className="staff-bottom-nav-indicator" />}
+              </div>
+              <span className="staff-bottom-nav-label">{label}</span>
+            </button>
+          );
+        })}
+        <div className="staff-bottom-nav-divider" />
+        <a
+          href="/"
+          target="_blank"
+          rel="noreferrer"
+          className="staff-bottom-nav-item staff-bottom-nav-link"
+          title="Customer storefront"
+        >
+          <div className="staff-bottom-nav-icon">
+            <ExternalLink size={18} />
+          </div>
+          <span className="staff-bottom-nav-label">Storefront</span>
+        </a>
+        <button
+          type="button"
+          onClick={logout}
+          className="staff-bottom-nav-item staff-bottom-nav-exit"
+          title="Exit staff session"
+        >
+          <div className="staff-bottom-nav-icon">
+            <LogOut size={18} />
+          </div>
+          <span className="staff-bottom-nav-label">Exit</span>
+        </button>
+      </div>
+    </nav>
   </div>;
 }
 function Stat({label,value,icon}){return <div className="stat-card"><div className="stat-icon">{icon}</div><span>{label}</span><strong>{value}</strong></div>}

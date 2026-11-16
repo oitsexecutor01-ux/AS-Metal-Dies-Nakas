@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, ShoppingCart, Menu, X, ArrowRight, ChevronRight, Truck, ShieldCheck,
   PackageCheck, ClipboardList, Phone, Mail, Plus, Minus, Trash2, MessageCircle,
   FileText, Star, CheckCircle2, Layers3, BadgeIndianRupee, Filter, Boxes,
-  Heart, Scale, SlidersHorizontal, History, UserRound, Copy, MapPin, LogIn, LogOut } from 'lucide-react';
+  Heart, Scale, SlidersHorizontal, History, UserRound, Copy, MapPin, LogIn, LogOut, Home } from 'lucide-react';
 import { updateStore, refreshCommerceStore, productPrice, deliveryDate, makeId } from '../lib/store.js';
 import { inr, day, phoneNumber, whatsappUrl, ProductArt, printInvoice, downloadInvoice, readAttachment } from '../lib/utils.jsx';
 import { cartPromotion } from '../lib/promotions.js';
@@ -523,6 +523,7 @@ export default function CustomerApp({data}){
           <img src="/icon-192.png" alt={shop.name} className="brand-mark" width="42" height="42" /><span><strong>{shop.name}</strong><small>{shop.tagline}</small></span>
         </button>
         <nav className={menu?'nav-links open':'nav-links'}>
+          <button className={page==='shop'?'active':''} onClick={()=>go('shop')}>Home</button>
           <button className={page==='products'?'active':''} onClick={()=>go('products')}>Products</button>
           <button className={page==='quote'?'active':''} onClick={()=>openQuote()}>Custom quotation</button>
           <button className={page==='history'?'active':''} onClick={()=>{if(savedAddresses.length&&!lookup)setLookup(savedAddresses[0].phone);go('history');}}>Order history</button>
@@ -793,12 +794,13 @@ export default function CustomerApp({data}){
       </section>)}
     </main>}
 
-    <footer className="footer"><div className="container footer-grid"><div><div className="brand footer-brand"><img src="/icon-192.png" alt={shop.name} className="brand-mark" width="42" height="42" /><span><strong>{shop.name}</strong><small>{shop.tagline}</small></span></div><p>Industrial dies, nakas and metalwork products.</p></div><div><h4>Quick links</h4><button onClick={()=>go('shop')}>Products</button><button onClick={()=>go('quote')}>Custom quotation</button><button onClick={()=>go('orders')}>Track order</button><button onClick={()=>go('contact')}>Contact & policies</button></div><div><h4>Contact</h4><p>{shop.address}</p><p>{shop.phone||'Phone not configured'}</p><a href="/staff/">Staff demo</a></div></div><div className="container footer-bottom">© {new Date().getFullYear()} {shop.name} • React frontend demo, not a live payment website.</div></footer>
+    <footer className="footer"><div className="container footer-grid"><div><div className="brand footer-brand"><img src="/icon-192.png" alt={shop.name} className="brand-mark" width="42" height="42" /><span><strong>{shop.name}</strong><small>{shop.tagline}</small></span></div><p>Industrial dies, nakas and metalwork products.</p></div><div><h4>Quick links</h4><button onClick={()=>go('shop')}>Home</button><button onClick={()=>go('products')}>Products</button><button onClick={()=>go('quote')}>Custom quotation</button><button onClick={()=>go('orders')}>Track order</button><button onClick={()=>go('contact')}>Contact & policies</button></div><div><h4>Contact</h4><p>{shop.address}</p><p>{shop.phone||'Phone not configured'}</p><a href="/staff/">Staff demo</a></div></div><div className="container footer-bottom">© {new Date().getFullYear()} {shop.name} • React frontend demo, not a live payment website.</div></footer>
     <a className="whatsapp-float" href={validPhone(shop.phone)?whatsappUrl(shop.phone,'Hello, I would like to enquire about your products.'):`https://wa.me/?text=${encodeURIComponent('Hello, I would like to enquire about your products.')}`} target="_blank" rel="noreferrer" aria-label={`Open WhatsApp chat with ${shop.name}`} title="Chat on WhatsApp"><MessageCircle size={25}/></a>
     <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
-      <button className={['products','shop','product'].includes(page)?'active':''} onClick={()=>go('products')}><PackageCheck size={20}/><span>Products</span></button>
-      <button className={page==='history'?'active':''} onClick={()=>{if(savedAddresses.length&&!lookup)setLookup(savedAddresses[0].phone);go('history');}}><History size={20}/><span>Order history</span></button>
-      <button className={page==='orders'?'active':''} onClick={()=>{if(savedAddresses.length&&!lookup)setLookup(savedAddresses[0].phone);go('orders');}}><ClipboardList size={20}/><span>Track order</span></button>
+      <button className={page==='shop'?'active':''} onClick={()=>go('shop')}><Home size={20}/><span>Home</span></button>
+      <button className={['products','product'].includes(page)?'active':''} onClick={()=>go('products')}><PackageCheck size={20}/><span>Products</span></button>
+      <button className={page==='history'?'active':''} onClick={()=>{if(savedAddresses.length&&!lookup)setLookup(savedAddresses[0].phone);go('history');}}><History size={20}/><span>History</span></button>
+      <button className={page==='orders'?'active':''} onClick={()=>{if(savedAddresses.length&&!lookup)setLookup(savedAddresses[0].phone);go('orders');}}><ClipboardList size={20}/><span>Track</span></button>
       <button className={page==='profile'?'active':''} onClick={()=>go('profile')}><UserRound size={20}/><span>Profile</span></button>
       <button className={customerAuth?'auth-logout':'auth-login'} onClick={()=>customerAuth?logoutCustomer():startCustomerAuth({type:'none'})} aria-label={customerAuth?'Log out':'Log in'} title={customerAuth?'Log out':'Log in'}>{customerAuth?<LogOut size={20}/>:<LogIn size={20}/>}<span>{customerAuth?'Logout':'Login'}</span></button>
     </nav>
