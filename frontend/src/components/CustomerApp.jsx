@@ -530,6 +530,7 @@ export default function CustomerApp({data}){
           <button className={page==='orders'?'active':''} onClick={()=>go('orders')}>Track order</button>
           <button className={page==='about'?'active':''} onClick={()=>go('about')}>About</button>
           <button className={page==='contact'?'active':''} onClick={()=>go('contact')}>Contact</button>
+          <button className="hide-desktop" style={{ color: '#b9622d', fontWeight: 800 }} onClick={()=>{setMenu(false);window.dispatchEvent(new CustomEvent('show-pwa-install'));}}>📱 Install App</button>
           <button className={`nav-auth-action ${customerAuth?'auth-logout':'auth-login'}`} onClick={()=>{setMenu(false);customerAuth?logoutCustomer():startCustomerAuth({type:'none'});}} aria-label={customerAuth?'Log out':'Log in'} title={customerAuth?'Log out':'Log in'}>{customerAuth?<LogOut size={19}/>:<LogIn size={19}/>}</button>
         </nav>
         <div className="header-actions">

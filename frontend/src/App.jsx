@@ -2,6 +2,7 @@ import React from 'react';
 import CustomerApp from './components/CustomerApp.jsx';
 import StaffApp from './components/StaffApp.jsx';
 import ClickSpark from './components/ClickSpark.jsx';
+import InstallPWA from './components/InstallPWA.jsx';
 import { commerceReady, useCommerceStore } from './lib/store.js';
 
 export default function App() {
@@ -15,5 +16,6 @@ export default function App() {
   const isStaff = /^\/staff(?:\/|$)/i.test(window.location.pathname);
   return <ClickSpark sparkColor={['#b9622d','#eebf99']} shape="line" sparkCount={7} sparkSize={12} sparkRadius={26} duration={450} style={{minHeight:'100vh'}}>
     {isStaff ? <StaffApp data={data} /> : <CustomerApp data={data} />}
+    <InstallPWA />
   </ClickSpark>;
 }
